@@ -69,15 +69,14 @@ def write_commands(voice_cmd: str, count: int):
     """
     client = ModbusClient(host=PLC_IP_ADDR, port=PLC_COM_PORT, auto_open=True)
 
-    if 'צדדים' in voice_cmd:
-        print("Single coil")
-        # client.write_single_coil(REGISTERS['left'], True)
-        # client.write_single_coil(REGISTERS['right'], True)
+    # TODO:
+    # if 'צדדים' in voice_cmd:
+    #     print("Single coil")
+    #     client.write_single_coil(REGISTERS['left'], True)
+    #     client.write_single_coil(REGISTERS['right'], True)
 
-    else:
-        print("Single coil")
-        # client.write_single_coil(REGISTERS[voice_cmd], True)
-
+    print("Single coil")
+    client.write_single_coil(REGISTERS[voice_cmd], True)
     say(voice_cmd, count)
 
 
