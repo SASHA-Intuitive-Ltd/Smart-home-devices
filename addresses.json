@@ -1,0 +1,6 @@
+{
+  "HMI_IP_ADDR": "192.168.1.6",
+  "PLC_IP_ADDR": "192.168.1.5",
+  "PLC_COM_PORT": 502,
+  "COMMAND_FILE_PATH": "C:\\Users\\rudov\\Desktop\\commands.csv"
+}

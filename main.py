@@ -14,17 +14,50 @@ from gtts import gTTS
 
 RECOGNIZER = sr.Recognizer()
 
-json_file = open("commands.json", "r")
+json_file = open("commands.json", "r", encoding="utf8")
 REGISTERS = json.load(json_file)
 json_file.close()
 
+# Data
+af = open("addresses.json", "r")
+addresses = json.load(af)
+af.close()
+
 # Commands file constant path
-COMMAND_FILE_PATH: str = r'C:\Users\rudov\Desktop\commands.csv'
+COMMAND_FILE_PATH: str = addresses["COMMAND_FILE_PATH"]
 
 # HMI & PLC IP ADDRESS - if modbus could be useful
-HMI_IP_ADDR = '192.168.1.6'
-PLC_IP_ADDR = '192.168.1.5'
-PLC_COM_PORT = 502
+HMI_IP_ADDR = addresses["HMI_IP_ADDR"]
+PLC_IP_ADDR = addresses["PLC_IP_ADDR"]
+PLC_COM_PORT = addresses["PLC_COM_PORT"]
+
+
+HEB_TO_SAY = {
+    "עליון": "Upper",
+    "תחתון": "Lower",
+    "גב": "Back",
+    "ימני": "Right",
+    "שמאלי": "Left",
+    "ראש": "Hair",
+    "בידה": "Bidet",
+    "שטיפה": "Rinse",
+    "גוף": "Body",
+    "ייבוש": "Dry",
+    "עצור": "Stop",
+}
+
+
+def say(text, count: int):
+    """
+    :param count:
+    :param text: str that contains the proffered voice output
+    :return: None
+    """
+    tts = gTTS(text=f"Activating: {HEB_TO_SAY[text]}", lang="en-US")
+    filename = f"voice{count}.mp3"
+    tts.save(filename)  # saves the audio file
+    playsound.playsound(filename)
+    os.remove(filename)
 
 
 # Write command to csv recipe file according to command type
@@ -36,41 +69,23 @@ def write_commands(voice_cmd: str, count: int):
     """
     client = ModbusClient(host=PLC_IP_ADDR, port=PLC_COM_PORT, auto_open=True)
 
-    if not voice_cmd == 'stop':
-        say(f'Activating: {voice_cmd}', count)
-        # TODO: Save active action3
-        # TODO 2: dif Thread for say
+    if 'צדדים' in voice_cmd:
+        print("Single coil")
+        # client.write_single_coil(REGISTERS['left'], True)
+        # client.write_single_coil(REGISTERS['right'], True)
 
     else:
-        say("Finishing", count)
+        print("Single coil")
+        # client.write_single_coil(REGISTERS[voice_cmd], True)
 
-    if 'sides' in voice_cmd:
-        client.write_single_coil(REGISTERS['left'], True)
-        client.write_single_coil(REGISTERS['right'], True)
-
-    else:
-        client.write_single_coil(REGISTERS[voice_cmd], True)
-
-
-def say(text, count: int):
-    """
-    :param count:
-    :param text: str that contains the proffered voice output
-    :return: None
-    """
-    tts = gTTS(text=text, lang="en")
-    filename = f"voice{count}.mp3"
-    tts.save(filename)  # saves the audio file
-    playsound.playsound(filename)
-    # os.remove(filename)
+    say(voice_cmd, count)
 
 
 # Main function
 def main():
     # TODO 1: Add multiple mics functionality
-    # TODO 2: Check equivalent words
-    # TODO 3: Take down all background noises (Change mic..)
-    # TODO 4: Add more commands to REGISTERS
+    # TODO 5: Save active command (better ux - saying: "Finishing: wash hair..."
+
     # Active until user says 'quit'
     count = 0
     while True:
@@ -84,17 +99,25 @@ def main():
             try:
                 # Try recognize speech
                 print("Recognizing...")
-                query = RECOGNIZER.recognize_google(audio)
+                queries = RECOGNIZER.recognize_google(
+                    audio,
+                    language="he",
+                    show_all=True,
+                )
 
-                # Print recognition result for debugging
-                print(query.lower())
+                print(queries)
+
+                for q in queries['alternative']:
+                    if q['transcript'] in REGISTERS.keys():
+                        query = q['transcript'].lower()
+                        print(query)
 
                 # Generate commands file if command in the possible commands list
-                if query.lower() in REGISTERS.keys():
-                    write_commands(query.lower(), count)
-                # If command is quit system, finish loop
-                if query.lower() == 'quit':
-                    break
+                if query:
+                    write_commands(query, count)
+
+                else:
+                    print("UNKNOWN COMMAND")
 
             except sr.UnknownValueError:
                 # Throw exception if error

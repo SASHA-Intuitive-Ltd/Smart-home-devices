@@ -32,7 +32,7 @@ def main():
             try:
                 # Try recognize speech
                 print("Recognizing...")
-                query = RECOGNIZER.recognize_google(audio)
+                query = RECOGNIZER.recognize_google(audio, "he-IL")
 
                 # Print recognition result for debugging
                 print(query.lower())
