@@ -18,6 +18,10 @@ json_file = open("commands.json", "r", encoding="utf8")
 REGISTERS = json.load(json_file)
 json_file.close()
 
+json_file1 = open("commands_eng.json", "r")
+REGISTERS_eng = json.load(json_file1)
+json_file1.close()
+
 # Data
 af = open("addresses.json", "r")
 addresses = json.load(af)
@@ -46,14 +50,17 @@ HEB_TO_SAY = {
     "עצור": "Stop",
 }
 
+client = ModbusClient(host=PLC_IP_ADDR, port=PLC_COM_PORT, auto_open=True)
 
-def say(text, count: int):
+
+def say(text: str, active_lang: str, count: int):
     """
+    :param active_lang:
     :param count:
     :param text: str that contains the proffered voice output
     :return: None
     """
-    tts = gTTS(text=f"Activating: {HEB_TO_SAY[text]}", lang="en-US")
+    tts = gTTS(text=f"Activating: {HEB_TO_SAY[text]}", lang="en-US") if active_lang == 'he' else gTTS(text=f"Activating: {text}", lang="en-US")
     filename = f"voice{count}.mp3"
     tts.save(filename)  # saves the audio file
     playsound.playsound(filename)
@@ -61,13 +68,13 @@ def say(text, count: int):
 
 
 # Write command to csv recipe file according to command type
-def write_commands(voice_cmd: str, count: int):
+def write_commands(voice_cmd: str, active_lang: str, count: int):
     """
+    :param active_lang:
     :param count:
     :param voice_cmd: The given voice command, translated to text
     :return: None
     """
-    client = ModbusClient(host=PLC_IP_ADDR, port=PLC_COM_PORT, auto_open=True)
 
     # TODO:
     # if 'צדדים' in voice_cmd:
@@ -76,18 +83,42 @@ def write_commands(voice_cmd: str, count: int):
     #     client.write_single_coil(REGISTERS['right'], True)
 
     print("Single coil")
-    client.write_single_coil(REGISTERS[voice_cmd], True)
-    say(voice_cmd, count)
+    if active_lang == 'he':
+        client.write_single_coil(REGISTERS[voice_cmd], True)
+
+    else:
+        client.write_single_coil(REGISTERS_eng[voice_cmd], True)
+
+        say(voice_cmd, active_lang, count)
+
+
+def find_query(queries, reg_keys: dict) -> str:
+    """
+    Function for finding the correct key word by alternatives according to given keys
+    :param queries: all possible recognitions
+    :param reg_keys: language register keys
+    :return:
+    """
+    for q in queries['alternative']:
+        if q['transcript'] in reg_keys:
+            return q['transcript'].replace("'", "")
 
 
 # Main function
 def main():
     # TODO 1: Add multiple mics functionality
-    # TODO 5: Save active command (better ux - saying: "Finishing: wash hair..."
+    # TODO 2: Multiple langs by plc reading
 
     # Active until user says 'quit'
     count = 0
     while True:
+        read_state = client.read_coils(2210)
+        print(read_state)
+        # DEBUG: read_state = 1
+        # Choose lang according to PLC button state
+        lang = "he" if read_state[0] is False else "en-US"
+        print(lang)
+
         with sr.Microphone() as source:
             print("Listening...")
 
@@ -100,20 +131,17 @@ def main():
                 print("Recognizing...")
                 queries = RECOGNIZER.recognize_google(
                     audio,
-                    language="he",
+                    language=lang,
                     show_all=True,
                 )
 
                 print(queries)
 
-                for q in queries['alternative']:
-                    if q['transcript'] in REGISTERS.keys():
-                        query = q['transcript'].lower()
-                        print(query)
+                query = find_query(queries, REGISTERS.keys()) if lang == 'he' else find_query(queries, REGISTERS_eng.keys())
 
                 # Generate commands file if command in the possible commands list
                 if query:
-                    write_commands(query, count)
+                    write_commands(query, lang, count)
 
                 else:
                     print("UNKNOWN COMMAND")
