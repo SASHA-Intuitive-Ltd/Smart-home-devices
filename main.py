@@ -4,6 +4,7 @@ __purpose__: 'Main function of voice recognition system for smart shower'
 """
 
 # Import modules
+import time
 import speech_recognition as sr     # For recognizing commands and write to file
 import os.path      # For removing files
 from pyModbusTCP.client import ModbusClient
@@ -50,7 +51,6 @@ STATES = DATABASE["devices"]
 f_user = open('user_info.txt', 'r')
 USERNAME = f_user.read()
 f_user.close()
-
 
 
 def say(text: str, active_lang: str, count: int):
@@ -131,6 +131,9 @@ def find_query(queries, reg_keys: dict) -> str:
 def main():
     # Loop count
     count = 0
+    log_file = open('script_log.txt', 'w')
+    log_file.write(f"Script activated at: {time.ctime()}")
+
     while True:
 
         # Read and print current language by M162 state
