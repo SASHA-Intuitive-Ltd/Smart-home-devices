@@ -8,8 +8,8 @@ import speech_recognition as sr     # For recognizing commands and write to file
 import os.path      # For removing files
 from pyModbusTCP.client import ModbusClient
 import json
-#import playsound
 from gtts import gTTS
+import pymongo
 
 # Define speech recognizer
 RECOGNIZER = sr.Recognizer()
@@ -39,6 +39,18 @@ PLC_COM_PORT = addresses["PLC_COM_PORT"]
 
 # Modbus protocol client
 client = ModbusClient(host=PLC_IP_ADDR, port=PLC_COM_PORT, auto_open=True)
+
+# DB client
+DATABASE_CLUSTER = pymongo.MongoClient(
+    "mongodb://ruben:4YZivD7je8eUbIQf@cluster0-shard-00-00.ely3j.mongodb.net:27017,cluster0-shard-00-01.ely3j.mongodb.net:27017,cluster0-shard-00-02.ely3j.mongodb.net:27017/?ssl=true&replicaSet=atlas-mh1otq-shard-0&authSource=admin&retryWrites=true&w=majority"
+)
+DATABASE = DATABASE_CLUSTER["myFirstDatabase"]
+STATES = DATABASE["devices"]
+
+f_user = open('user_info.txt', 'r')
+USERNAME = f_user.read()
+f_user.close()
+
 
 
 def say(text: str, active_lang: str, count: int):
@@ -99,6 +111,7 @@ def write_commands(voice_cmd: str, active_lang: str, count: int):
     else:
         client.write_single_coil(REGISTERS_eng[voice_cmd], True)
 
+
     # Indicate user about command being activated
     # say(voice_cmd, active_lang, count)
 
@@ -156,8 +169,34 @@ def main():
                 query = find_query(queries, REGISTERS.keys()) if lang == 'he' else find_query(queries, REGISTERS_eng.keys())
 
                 # Generate commands file if command in the possible commands list
+
                 if query:
+                    states = []
+
                     write_commands(query, lang, count)
+
+                    if lang == 'he':
+                        for item in REGISTERS.keys().encode:
+                            if query != 'עצור':
+                                states.append(False if query != item else True)
+
+                            else:
+                                states.append(False)
+                    else:
+                        for item in REGISTERS_eng.keys():
+                            if query != 'stop':
+                                states.append(False if query != item else True)
+
+                            else:
+                                states.append(False)
+
+
+                    STATES.update_one({"username": USERNAME},  {
+                        "$set": {
+                            "shower": [item for item in REGISTERS_eng.keys()],
+                            "states": states
+                        }
+                    })
 
                 else:
                     print("UNKNOWN COMMAND")
