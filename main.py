@@ -133,6 +133,7 @@ def main():
     count = 0
     log_file = open('script_log.txt', 'w')
     log_file.write(f"Script activated at: {time.ctime()}")
+    log_file.close()
 
     while True:
 
