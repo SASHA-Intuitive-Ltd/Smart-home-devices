@@ -1,2 +1,20 @@
+# Ignore test scripts
+/shower/tests
+/wheelchair/tests
 test.py
 train_voice_recognition.py
+/wheelchair
+/shower
+# Make sensetive config files invisible
+/configs
+/config.json
+/commands_eng.json
+/commands.json
+/script_log.txt
+/shower_state.py
+/test_regs.py
+/user_info.txt
+/workflows.json
+/venv
+/roboteq
+/db_accessor.py

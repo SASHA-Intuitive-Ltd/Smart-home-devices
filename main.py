@@ -98,22 +98,12 @@ def write_commands(voice_cmd: str, active_lang: str, count: int):
     :return: None
     """
 
-    # TODO:
-    # if 'צדדים' in voice_cmd:
-    #     print("Single coil")
-    #     client.write_single_coil(REGISTERS['left'], True)
-    #     client.write_single_coil(REGISTERS['right'], True)
-
     # Write command by lang
     if active_lang == 'he':
         client.write_single_coil(REGISTERS[voice_cmd], True)
 
     else:
         client.write_single_coil(REGISTERS_eng[voice_cmd], True)
-
-
-    # Indicate user about command being activated
-    # say(voice_cmd, active_lang, count)
 
 
 def find_query(queries, reg_keys: dict) -> str:
@@ -142,7 +132,7 @@ def main():
         print(read_state)
 
         # Choose lang according to PLC button state
-        lang = "he" if read_state[0] is False else "en-US"
+        lang = "he" if read_state[0] is False or None else "en-US"
         print(lang)
 
         # When opening mic as source
@@ -193,7 +183,6 @@ def main():
 
                             else:
                                 states.append(False)
-
 
                     STATES.update_one({"username": USERNAME},  {
                         "$set": {
