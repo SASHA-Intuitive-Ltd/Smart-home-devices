@@ -6,7 +6,6 @@ train_voice_recognition.py
 /wheelchair
 # Make sensetive config files invisible
 /configs
-/shower/config.json
 /commands_eng.json
 /commands.json
 /script_log.txt
