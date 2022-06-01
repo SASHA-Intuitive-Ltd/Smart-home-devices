@@ -4,17 +4,16 @@
 test.py
 train_voice_recognition.py
 /wheelchair
-/shower
 # Make sensetive config files invisible
 /configs
-/config.json
+/shower/config.json
 /commands_eng.json
 /commands.json
 /script_log.txt
-/shower_state.py
+/shower/shower_state.py
 /test_regs.py
 /user_info.txt
-/workflows.json
+/shower/workflows.json
 /venv
 /roboteq
-/db_accessor.py
+/shower/db_accessor.py
