@@ -125,6 +125,9 @@ def main():
     log_file.write(f"Script activated at: {time.ctime()}")
     log_file.close()
 
+    say("voice recognition", 'en-US', count)
+    count += 1
+
     while True:
 
         # Read and print current language by M162 state
@@ -136,76 +139,77 @@ def main():
         print(lang)
 
         # When opening mic as source
-        with sr.Microphone() as source:
+        if client.read_coils(2063)[0] is True:
+            with sr.Microphone() as source:
 
-            # Indicate for debug
-            print("Listening...")
+                # Indicate for debug
+                print("Listening...")
 
-            # Listeners setting
-            RECOGNIZER.adjust_for_ambient_noise(source)
-            audio = RECOGNIZER.listen(source)
+                # Listeners setting
+                RECOGNIZER.adjust_for_ambient_noise(source)
+                audio = RECOGNIZER.listen(source)
 
-            try:
-                # Try recognize speech
-                print("Recognizing...")
+                try:
+                    # Try recognize speech
+                    print("Recognizing...")
 
-                # Recognize possible options, by audio, current lang and show all options
-                queries = RECOGNIZER.recognize_google(
-                    audio,
-                    language=lang,
-                    show_all=True,
-                )
+                    # Recognize possible options, by audio, current lang and show all options
+                    queries = RECOGNIZER.recognize_google(
+                        audio,
+                        language=lang,
+                        show_all=True,
+                    )
 
-                # Print option for debugging
-                print(queries)
+                    # Print option for debugging
+                    print(queries)
 
-                # Choose the right option for command
-                query = find_query(queries, REGISTERS.keys()) if lang == 'he' else find_query(queries, REGISTERS_eng.keys())
+                    # Choose the right option for command
+                    query = find_query(queries, REGISTERS.keys()) if lang == 'he' else find_query(queries, REGISTERS_eng.keys())
 
-                # Generate commands file if command in the possible commands list
+                    # Generate commands file if command in the possible commands list
 
-                if query:
-                    states = []
+                    if query:
+                        states = []
 
-                    write_commands(query, lang, count)
+                        write_commands(query, lang, count)
 
-                    if lang == 'he':
-                        for item in REGISTERS.keys().encode:
-                            if query != 'עצור':
-                                states.append(False if query != item else True)
+                        if lang == 'he':
+                            for item in REGISTERS.keys().encode:
+                                if query != 'עצור':
+                                    states.append(False if query != item else True)
 
-                            else:
-                                states.append(False)
+                                else:
+                                    states.append(False)
+                        else:
+                            for item in REGISTERS_eng.keys():
+                                if query != 'stop':
+                                    states.append(False if query != item else True)
+
+                                else:
+                                    states.append(False)
+
+                        STATES.update_one({"username": USERNAME},  {
+                            "$set": {
+                                "shower": [item for item in REGISTERS_eng.keys()],
+                                "states": states
+                            }
+                        })
+
                     else:
-                        for item in REGISTERS_eng.keys():
-                            if query != 'stop':
-                                states.append(False if query != item else True)
+                        print("UNKNOWN COMMAND")
 
-                            else:
-                                states.append(False)
+                # Speech recognition error
+                except sr.UnknownValueError:
+                    # Throw exception if error
+                    print("Could not understand audio")
 
-                    STATES.update_one({"username": USERNAME},  {
-                        "$set": {
-                            "shower": [item for item in REGISTERS_eng.keys()],
-                            "states": states
-                        }
-                    })
+                # Print all exceptions
+                except Exception as e:
+                    print(e)
 
-                else:
-                    print("UNKNOWN COMMAND")
-
-            # Speech recognition error
-            except sr.UnknownValueError:
-                # Throw exception if error
-                print("Could not understand audio")
-
-            # Print all exceptions
-            except Exception as e:
-                print(e)
-
-            # Add to count each loop cycle
-            finally:
-                count += 1
+                # Add to count each loop cycle
+                finally:
+                    count += 1
 
 
 # Run program
